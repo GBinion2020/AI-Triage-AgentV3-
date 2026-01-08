@@ -15,14 +15,14 @@ We will transition from a linear pipeline to a **ReAct (Reason + Act)** loop.
 
 ```mermaid
 graph TD
-    A[Alert Received] --> B{Agent Decision}
-    B -- "I need more info" --> C[Select Tool]
-    C --> D[Guardrail Check]
-    D -- Pass --> E[Execute Parametrized KQL]
-    E --> F[Observation (Results)]
+    A["Alert Received"] --> B{"Agent Decision"}
+    B -- "I need more info" --> C["Select Tool"]
+    C --> D["Guardrail Check"]
+    D -- "Pass" --> E["Execute Parametrized KQL"]
+    E --> F["Observation Results"]
     F --> B
-    B -- "I have enough context" --> G[Final Classification]
-    D -- Fail --> B
+    B -- "I have enough context" --> G["Final Classification"]
+    D -- "Fail" --> B
 ```
 
 ## 3. The Guardrails System (Protection Layer)
@@ -55,11 +55,6 @@ Create a new class `InvestigationAgent` that replaces the simple `AlertClassifie
 Update `llm/prompts.py` to support tool selection.
 *   *System Prompt Update:* "You are an investigator. You have access to these tools. Use them to gather evidence before making a verdict."
 
-## 5. Better Than "Enterprise"
-How this beats standard commercial AI SOC tools:
-1.  **Transparency:** We will log the *exact* "Thought Process" and "Tool Output" into the final JSON. You see exactly why the agent decided what it did.
-2.  **Safety:** Zero chance of broken KQL.
-3.  **Performance:** By running parametrized queries, we leverage Elastic's indexes efficiently, rather than hoping the LLM "guesses" the right field names.
 
 ## Example Workflow
 1.  **Alert:** "Suspicious PowerShell from User 'Bob'"
