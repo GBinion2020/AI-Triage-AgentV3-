@@ -6,6 +6,82 @@ This project is an automated Security Operations Center (SOC) Triage Agent desig
 
 The agent follows an iterative, agentic pipeline to process alerts:
 
+### High-Level Overview
+
+```mermaid
+flowchart LR
+    A[Elastic SIEM<br/>Alert Ingestion] --> B[Context<br/>Extraction]
+    B --> C[RAG: MITRE<br/>Knowledge Retrieval]
+    C --> D[Agentic<br/>Investigation Loop]
+    D --> E[Tool Execution:<br/>SIEM / VirusTotal]
+    E --> D
+    D --> F[Final<br/>Classification]
+    F --> G[Output:<br/>Decision + History]
+    
+    style A fill:#e1f5ff
+    style D fill:#fff4e1
+    style F fill:#e1ffe1
+    style G fill:#ffe1f5
+```
+
+### Detailed Workflow Diagram
+
+```mermaid
+flowchart TD
+    Start([Start: Fetch Alerts]) --> Fetch[Fetch Recent Alerts<br/>from Elastic SIEM]
+    Fetch --> CheckAlerts{Alerts<br/>Found?}
+    CheckAlerts -->|No| End([End: No Alerts])
+    CheckAlerts -->|Yes| Extract[Extract Alert Context<br/>Normalize Data]
+    
+    Extract --> RAG[Query RAG Vector DB<br/>Retrieve MITRE ATT&CK Techniques]
+    RAG --> InitLoop[Initialize Investigation Loop<br/>Turn = 1, Max = 5]
+    
+    InitLoop --> Decision{LLM Decision:<br/>Need More Info?}
+    
+    Decision -->|Yes: Use Tool| CheckMandatory{Mandatory SIEM<br/>Query Used?}
+    CheckMandatory -->|No| ForceSIEM[Force SIEM Query]
+    CheckMandatory -->|Yes| SelectTool{Select Tool}
+    
+    ForceSIEM --> SelectTool
+    SelectTool -->|query_siem_host_logs| SIEMQuery[Query SIEM Host Logs<br/>Time Window Search]
+    SelectTool -->|query_virustotal| VTQuery[Query VirusTotal<br/>IOC Reputation Check]
+    
+    SIEMQuery --> CheckDuplicate{Duplicate<br/>Query?}
+    VTQuery --> CheckDuplicate
+    CheckDuplicate -->|Yes| BlockDuplicate[Block Duplicate<br/>Add to History]
+    CheckDuplicate -->|No| Execute[Execute Tool]
+    BlockDuplicate --> IncrementTurn
+    
+    Execute --> Summarize[Summarize Tool Result<br/>Add to Investigation Journal]
+    Summarize --> IncrementTurn[Increment Turn]
+    IncrementTurn --> CheckTurns{Turn <= 5?}
+    CheckTurns -->|Yes| Decision
+    CheckTurns -->|No| FinalClassify
+    
+    Decision -->|No: Ready to Classify| CheckMandatoryFinal{Mandatory SIEM<br/>Query Used?}
+    CheckMandatoryFinal -->|No| ForceSIEM
+    CheckMandatoryFinal -->|Yes| FinalClassify[Final Classification<br/>with Full Investigation History]
+    
+    FinalClassify --> LLMAnalysis[LLM Analysis<br/>AlertContext + MITRE + History]
+    LLMAnalysis --> Output[Generate Classification:<br/>- Classification<br/>- Confidence<br/>- Reasoning<br/>- Action<br/>- MITRE Techniques<br/>- Investigation History]
+    
+    Output --> NextAlert{More<br/>Alerts?}
+    NextAlert -->|Yes| Extract
+    NextAlert -->|No| End
+    
+    style Start fill:#e1f5ff
+    style End fill:#ffe1f5
+    style Decision fill:#fff4e1
+    style SelectTool fill:#fff4e1
+    style FinalClassify fill:#e1ffe1
+    style LLMAnalysis fill:#e1ffe1
+    style RAG fill:#f0e1ff
+    style SIEMQuery fill:#ffe1f5
+    style VTQuery fill:#ffe1f5
+```
+
+### Detailed Workflow Steps
+
 1.  **Ingestion (`elastic/`)**: 
     *   Connects to the Elastic SIEM instance using the provided API key.
     *   Fetches recent "open" security alerts within a specified timeframe.
