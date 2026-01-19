@@ -598,25 +598,4 @@ soc-ai-TriageAgent/
 
 ---
 
-## License
-
-MIT License - see LICENSE file for details
-
----
-
-## Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request with detailed description
-
----
-
-## Contact
-
-For questions or support, please open an issue on GitHub.
-
----
-
 **Built with love for the SOC community**
