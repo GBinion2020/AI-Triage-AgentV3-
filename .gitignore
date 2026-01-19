@@ -2,3 +2,12 @@
 __pycache__/
 .venv/
 *.pyc
+
+# Investigation Artifacts
+audit_trail_*.json
+logs_*.txt
+*.log
+debug_output.*
+
+# Persistent DB (Optional - usually excluded if large)
+chroma_db/
