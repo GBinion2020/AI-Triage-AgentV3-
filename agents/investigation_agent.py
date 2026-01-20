@@ -6,8 +6,8 @@ class InvestigationAgent:
     """
     Tier-1 Agent: Hypothesis-Driven Evidence Gathering.
     """
-    def __init__(self):
-        self.llm = LLMClient()
+    def __init__(self, llm_client: LLMClient):
+        self.llm = llm_client
         
     def generate_intent(self, state: InvestigationState) -> str:
         """
@@ -47,4 +47,8 @@ class InvestigationAgent:
         """
         
         print(f"DEBUG: Investigation Prompt Size: {len(prompt)} chars")
-        return self.llm.generate(prompt)
+        try:
+            return self.llm.generate(prompt)
+        except Exception as e:
+            print(f"Investigation LLM Error: {e}")
+            return "Investigate further based on initial alert signals."

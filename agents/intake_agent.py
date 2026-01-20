@@ -4,8 +4,8 @@ from llm.client import LLMClient
 from schemas.alert import NormalizedSecurityAlert
 
 class IntakeAgent:
-    def __init__(self):
-        self.llm = LLMClient()
+    def __init__(self, llm_client: LLMClient):
+        self.llm = llm_client
         
     def evaluate(self, alert: NormalizedSecurityAlert) -> str:
         """

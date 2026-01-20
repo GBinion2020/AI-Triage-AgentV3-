@@ -7,8 +7,8 @@ class ReasoningAgent:
     Tier-2 Agent: Deep Analysis.
     Resolves ambiguity without new tools.
     """
-    def __init__(self):
-        self.llm = LLMClient()
+    def __init__(self, llm_client: LLMClient):
+        self.llm = llm_client
         
     def analyze(self, state: InvestigationState) -> str:
         """
@@ -42,4 +42,8 @@ class ReasoningAgent:
         Is this a confirmed True Positive, a Benign Positive (authorized admin activity), or a False Positive?
         """
         
-        return self.llm.generate(prompt)
+        try:
+            return self.llm.generate(prompt)
+        except Exception as e:
+            print(f"Reasoning LLM Error: {e}")
+            return "Analytical reasoning failed due to LLM error. Proceeding with caution based on evidentiary facts."

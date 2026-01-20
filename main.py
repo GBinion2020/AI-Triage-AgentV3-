@@ -12,6 +12,7 @@ load_dotenv()
 # Components
 from intake.ingest import AlertIngestor
 from intake.pre_classifier import PreClassifier
+from llm.client import LLMClient
 from context.builder import build_initial_state
 from context.mitre_map import get_mitre_techniques
 from context.rag import MitreRAG
@@ -27,29 +28,38 @@ from agents.decision_agent import DecisionAgent
 from core.confidence import check_operational_confidence, check_analytical_confidence
 from schemas.state import InvestigationState, LoopAudit
 from utils.pipeline_logger import PipelineLogger
+from utils.email_notifier import EmailNotifier
 
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger("EnterpriseSOC")
 
+def select_llm_provider():
+    """
+    Interactive prompt to select LLM provider.
+    """
+    print("\n" + "="*50)
+    print("LLM PROVIDER SELECTION")
+    print("="*50)
+    print("1. Local LLM (Ollama)")
+    print("2. External API (OpenAI/Compatible)")
+    
+    while True:
+        choice = input("\nSelect LLM provider [1/2]: ").strip()
+        if choice == "1":
+            return "local"
+        elif choice == "2":
+            return "external"
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
+
 def main():
     logger.info("Starting Enterprise Agentic SOC...")
     
-    # 1. Initialize Components
     ingestor = AlertIngestor()
     pre_classifier = PreClassifier()
-    intake_agent = IntakeAgent()
-    mitre_rag = MitreRAG()
-    policy_engine = PolicyEngine()
-    token_guard = TokenBudgetController(max_tokens=60000)
-    planner = DeterministicPlanner()
-    executor = ToolExecutor()
-    summarizer = ResultSummarizer()
-    inv_agent = InvestigationAgent()
-    reason_agent = ReasoningAgent()
-    decision_agent = DecisionAgent()
     
-    # 2. Fetch Alerts
+    # 1. Fetch Alerts
     try:
         alerts = ingestor.fetch_latest_alerts(minutes=1440, limit=1) # Last 24h
         logger.info(f"Fetched {len(alerts)} alerts.")
@@ -57,15 +67,38 @@ def main():
         logger.error(f"Failed to fetch alerts: {e}")
         return
 
+    if not alerts:
+        logger.info("No new alerts to process.")
+        return
+
+    # 2. Select LLM Provider (Interactive)
+    llm_mode = select_llm_provider()
+    llm_client = LLMClient(mode=llm_mode)
+
+    # 3. Initialize Agents with Shared LLM Client
+    intake_agent = IntakeAgent(llm_client)
+    inv_agent = InvestigationAgent(llm_client)
+    reason_agent = ReasoningAgent(llm_client)
+    decision_agent = DecisionAgent(llm_client)
+    
+    mitre_rag = MitreRAG()
+    policy_engine = PolicyEngine()
+    token_guard = TokenBudgetController(max_tokens=60000)
+    planner = DeterministicPlanner()
+    executor = ToolExecutor()
+    summarizer = ResultSummarizer()
+    email_notifier = EmailNotifier()
+
     for alert in alerts:
         process_alert(
             alert, 
             pre_classifier, intake_agent, mitre_rag, policy_engine, 
             token_guard, planner, executor, summarizer, 
-            inv_agent, reason_agent, decision_agent
+            inv_agent, reason_agent, decision_agent,
+            email_notifier
         )
 
-def process_alert(alert, pre_classifier, intake_agent, mitre_rag, policy_engine, token_guard, planner, executor, summarizer, inv_agent, reason_agent, decision_agent):
+def process_alert(alert, pre_classifier, intake_agent, mitre_rag, policy_engine, token_guard, planner, executor, summarizer, inv_agent, reason_agent, decision_agent, email_notifier):
     logger.info(f"Processing Alert: {alert.alert.name} (ID: {alert.alert.id})")
     
     # Initialize Pipeline Logger
@@ -263,6 +296,20 @@ def process_alert(alert, pre_classifier, intake_agent, mitre_rag, policy_engine,
     except Exception as e:
         logger.error(f"Failed to export audit trail: {e}")
         pipeline_log.log_error(str(e), "Failed to export audit trail")
+
+    # --- Step 16: Send Email Notification ---
+    pipeline_log.log_step("EMAIL_NOTIFICATION", "Sending triage report email...")
+    email_notifier.send_triage_report(
+        alert_data={
+            "name": alert.alert.name,
+            "severity": alert.alert.severity,
+            "tags": alert.detection.mitre_techniques, # Corrected: 'detection' is a sibling of 'alert' in NormalizedSecurityAlert
+            "description": alert.alert.description
+        },
+        triage_result=final_output,
+        journal=final_output.get("journal", []),
+        elapsed_time=time.time() - start_time # start_time from Step 13
+    )
     
     # Close pipeline log
     pipeline_log.close()
