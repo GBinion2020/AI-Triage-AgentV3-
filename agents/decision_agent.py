@@ -7,8 +7,8 @@ class DecisionAgent:
     Final Authority.
     Produces the final structured output.
     """
-    def __init__(self):
-        self.llm = LLMClient()
+    def __init__(self, llm_client: LLMClient):
+        self.llm = llm_client
         
     def decide(self, state: InvestigationState, reasoning_trace: str = "") -> dict:
         """
@@ -48,7 +48,7 @@ class DecisionAgent:
         {{
             "classification": "True Positive" | "False Positive" | "Benign Positive",
             "confidence_score": 0.0 to 1.0,
-            "summary": "Detailed 3-5 sentence summary outlining the reasoning, what evidence supported the decision, and any mitigating factors.",
+            "summary": "Provide EXACTLY 4-6 full, technical sentences outlining the reasoning, what evidence supported the decision, and any mitigating factors. Do not use bullet points here.",
             "action": "Close" | "Escalate to Incident Response" | "Block Asset/User",
             "mitre_techniques": ["TXXXX"],
             "journal": ["Timeline of investigation steps taken..."]
