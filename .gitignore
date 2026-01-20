@@ -11,3 +11,5 @@ debug_output.*
 
 # Persistent DB (Optional - usually excluded if large)
 chroma_db/
+
+pipeline_logs/
