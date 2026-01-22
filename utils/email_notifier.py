@@ -22,7 +22,7 @@ class EmailNotifier:
         else:
             logger.warning("Email notifications (Resend SDK) are disabled. Please configure RE_SEND_KEY and NOTIFY_EMAIL in .env")
 
-    def send_triage_report(self, alert_data: dict, triage_result: dict, journal: list, elapsed_time: float):
+    def send_triage_report(self, alert_data: dict, triage_result: dict, journal: list, elapsed_time: float, ioc_list: list = []):
         """
         Formats and sends the triage report email using Resend SDK.
         """
@@ -38,29 +38,57 @@ class EmailNotifier:
             
             # Format triage results
             classification = triage_result.get('classification', 'Unknown')
-            confidence = triage_result.get('confidence_score', 'N/A')
+            final_score = triage_result.get('final_score', 'N/A')
             action = triage_result.get('action', 'N/A')
             summary = triage_result.get('summary', 'No summary provided.')
+            evidence_table = triage_result.get('evidence_table', [])
             
             # Format journal
             journal_str = "\n".join([f"- {step}" for step in journal])
+
+            # Format IOCs
+            if ioc_list:
+                ioc_str = "\n".join([f"- [{ioc['type'].upper()}] {ioc['value']} (Source: {ioc['source']})" for ioc in ioc_list])
+            else:
+                ioc_str = "No specific IOCs flagged."
+
+            # Format evidence table (no scoring mechanics)
+            if evidence_table:
+                evidence_lines = []
+                for row in evidence_table:
+                    evidence_lines.append(
+                        f"- {row.get('category', 'Unknown')}: {row.get('evidence', 'N/A')}"
+                    )
+                evidence_str = "\n".join(evidence_lines)
+            else:
+                evidence_str = "No evidence table entries provided."
             
             # Build the template
-            body = f"""Alert Name: {alert_name}
-Severity: {severity}
-Tags: {tags}
-Description: {description}
+            body = f"""**Alert Name:** {alert_name}
+**Severity:** {severity}
+**Tags:** {tags}
+**Description:** {description}
+--------------------------------------------
+Found Indicators (IOCs)
+--------------------------------------------
+{ioc_str}
+
 --------------------------------------------
 LLM Triage Agent
 --------------------------------------------
-Classification: {classification}
-Confidence Score: {confidence}
-Action: {action}
-Investigation Summary: {summary}
+**Classification:** {classification}
+**Final Score:** {final_score}
+**Action:** {action}
+**Investigation Summary:** {summary}
+
+--------------------------------------------
+Evidence Table
+--------------------------------------------
+{evidence_str}
 
 ---------------------------------------------
-LLM-Triage time: {elapsed_time:.2f}s
-Triage Journal:
+**LLM-Triage time:** {elapsed_time:.2f}s
+**Triage Journal:**
 {journal_str}
 """
 

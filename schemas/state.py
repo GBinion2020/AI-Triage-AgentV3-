@@ -18,6 +18,9 @@ class Evidence(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     type: EvidenceType = EvidenceType.LOG
     confidence: float = 1.0
+    category: Optional[str] = Field(None, description="Risk scoring category, if applicable")
+    weight: Optional[float] = Field(None, description="Risk matrix weight for this evidence, if applicable")
+    contribution: Optional[float] = Field(None, description="Weight * confidence contribution, if applicable")
     
 class Hypothesis(BaseModel):
     """ A working theory about the alert. """
@@ -57,6 +60,14 @@ class InvestigationState(BaseModel):
     tool_history: List[ToolExecutionRecord] = Field(default_factory=list)
     audit_trail: List[LoopAudit] = Field(default_factory=list)
     query_hashes: List[str] = Field(default_factory=list, description="Set of hashes for queries deemed 'DONE'")
+    lessons_learned: str = Field("", description="Summarized insights from past similar incidents (RAG)")
+    ioc_store: List[Dict[str, str]] = Field(default_factory=list, description="List of discovered IOCs (type, value, source)")
+    risk_score: float = Field(0.0, description="Final numeric risk score (0-100)")
+    evidence_table: List[Dict[str, Any]] = Field(default_factory=list, description="Structured evaluation dimensions for the report")
+    scoring_factors: List[Dict[str, Any]] = Field(default_factory=list, description="Deterministic risk factors used for scoring")
+    dimension_history: List[str] = Field(default_factory=list, description="Recent investigation dimensions targeted")
+
+
     
     # Metadata
     start_time: datetime = Field(default_factory=datetime.now)

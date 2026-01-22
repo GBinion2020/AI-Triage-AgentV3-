@@ -17,6 +17,8 @@ class ToolExecutor:
             raw_result = ""
             if tool_name == "query_siem_host_logs":
                 raw_result = siem.query_host_logs(**args)
+            elif tool_name == "query_recent_host_alerts":
+                raw_result = siem.query_recent_host_alerts(**args)
             elif tool_name == "check_virustotal":
                 raw_result = virustotal.lookup_indicator(**args)
             elif tool_name == "search_entra_logs":

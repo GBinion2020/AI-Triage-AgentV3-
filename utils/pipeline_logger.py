@@ -59,8 +59,17 @@ Started: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}
     
     def _write_to_cli(self, message: str):
         """Write message to CLI"""
-        print(message, end='')
-        sys.stdout.flush()
+        try:
+            print(message, end='')
+        except UnicodeEncodeError:
+            encoding = sys.stdout.encoding or "utf-8"
+            safe_message = message.encode(encoding, errors="replace").decode(encoding, errors="replace")
+            print(safe_message, end='')
+        try:
+            sys.stdout.flush()
+        except OSError:
+            # Non-interactive pipelines can throw on flush.
+            pass
     
     def _get_timestamp(self) -> str:
         """Get current timestamp relative to start"""

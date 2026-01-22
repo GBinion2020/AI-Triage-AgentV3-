@@ -1,20 +1,18 @@
 import json
 import re
 from llm.client import LLMClient
-from schemas.alert import NormalizedSecurityAlert
+from schemas.state import InvestigationState
 
 class IntakeAgent:
     def __init__(self, llm_client: LLMClient):
         self.llm = llm_client
         
-    def evaluate(self, alert: NormalizedSecurityAlert) -> str:
+    def evaluate(self, state: InvestigationState) -> str:
         """
         Routing decision: 'investigate' or 'close_benign'.
+        Grounded in historical context (lessons_learned).
         """
-        
-        # 1. Deterministic Overrides (Pre-LLM)
-        if alert.alert.severity == "critical":
-            return "investigate"
+        alert = state.alert
             
         signals = alert.analysis_signals
         
@@ -44,6 +42,9 @@ class IntakeAgent:
         
         active_analysis_signals (SUMMARY):
         {signals_text}
+        
+        LESSONS LEARNED FROM SIMILAR PAST INCIDENTS:
+        {state.lessons_learned if state.lessons_learned else "No relevant past incidents found."}
         
         CRITICAL RULES:
         1. You are ONLY allowed to close alerts as 'close_benign' if you are >95% confident they are harmless.

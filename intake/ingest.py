@@ -3,7 +3,7 @@ from elastic.client import ElasticClient
 # New Schema Imports
 from schemas.alert import (
     NormalizedSecurityAlert, AlertInfo, DetectionInfo, ExecutionInfo, 
-    EntityInfo, ProcessInfo, HostInfo, UserInfo, PowerShellInfo
+    EntityInfo, ProcessInfo, HostInfo, UserInfo, PowerShellInfo, RawContext
 )
 from intake.logic import SignalEngine
 from datetime import datetime
@@ -117,15 +117,21 @@ class AlertIngestor:
             # --- 3. Execution Info ---
             proc_name = get_field(["process.name", "process.executable", "kibana.alert.original_event.process.name"])
             cmd_line = get_field(["process.command_line", "process.args"], "")
-            if isinstance(cmd_line, list): 
+            if isinstance(cmd_line, list):
                 cmd_line = " ".join(cmd_line)
+            if not cmd_line:
+                cmd_line = get_field(["message"], "")
+            proc_args = get_field(["process.args"], [])
+            if proc_args and not isinstance(proc_args, list):
+                proc_args = [str(proc_args)]
                 
             process_info = None
             if proc_name:
                 process_info = ProcessInfo(
                     name=proc_name,
                     pid=get_field(["process.pid"]),
-                    command_line=cmd_line or ""
+                    command_line=cmd_line or "",
+                    args=proc_args or []
                 )
                 
             # Populating Powershell info if available (ECS fields)
@@ -148,13 +154,20 @@ class AlertIngestor:
             host_name = get_field(["host.name", "host.hostname"])
             host_ip = get_field(["host.ip"], [])
             if host_ip and not isinstance(host_ip, list): host_ip = [host_ip]
+            host_mac = get_field(["host.mac"], [])
+            if host_mac and not isinstance(host_mac, list): host_mac = [host_mac]
             
             host_info = None
             if host_name:
                 host_info = HostInfo(
                     hostname=host_name,
                     os=get_field(["host.os.name", "host.os.full"], "Unknown"),
-                    ip_addresses=host_ip or []
+                    os_version=get_field(["host.os.version"]),
+                    os_kernel=get_field(["host.os.kernel"]),
+                    os_platform=get_field(["host.os.platform"]),
+                    os_name_text=get_field(["host.os.name.text"]),
+                    ip_addresses=host_ip or [],
+                    mac_addresses=host_mac or []
                 )
                 
             user_name = get_field(["user.name", "user.id"])
@@ -177,6 +190,35 @@ class AlertIngestor:
                 process_name=proc_name,
                 command_line=cmd_line
             )
+
+            # --- 6. Raw Context (Minimal) ---
+            raw_context = RawContext(
+                rule_name=get_field(["kibana.alert.rule.name", "signal.rule.name", "rule.name"]),
+                rule_description=get_field(["kibana.alert.rule.description", "signal.rule.description", "rule.description"]),
+                alert_reason=get_field(["kibana.alert.reason"]),
+                message=get_field(["message"]),
+                event_created=get_field(["event.created"]),
+                event_code=get_field(["event.code", "kibana.alert.original_event.code"]),
+                event_action=get_field(["event.action", "kibana.alert.original_event.action"]),
+                event_dataset=get_field(["event.dataset", "kibana.alert.original_event.dataset"]),
+                event_provider=get_field(["event.provider"]),
+                event_category=get_field(["event.category"]),
+                winlog_event_id=get_field(["winlog.event_id"]),
+                winlog_channel=get_field(["winlog.channel"]),
+                winlog_process_pid=get_field(["winlog.process.pid"]),
+                winlog_computer_name=get_field(["winlog.computer_name"]),
+                agent_name=get_field(["agent.name", "elastic_agent.id"]),
+                host_os_kernel=get_field(["host.os.kernel"]),
+                host_os_name=get_field(["host.os.name", "host.os.full"]),
+                host_name=get_field(["host.name", "host.hostname"]),
+                host_os_platform=get_field(["host.os.platform"]),
+                host_os_name_text=get_field(["host.os.name.text"]),
+                host_ip=get_field(["host.ip"]),
+                host_mac=get_field(["host.mac"]),
+                process_command_line=cmd_line or "",
+                process_args=proc_args or [],
+                process_pid=get_field(["process.pid", "winlog.process.pid"])
+            )
             
             # --- Final Object ---
             normalized_alert = NormalizedSecurityAlert(
@@ -185,6 +227,7 @@ class AlertIngestor:
                 execution=execution_info,
                 entity=entity_info,
                 analysis_signals=signals,
+                raw_context=raw_context,
                 raw_data=source
             )
             

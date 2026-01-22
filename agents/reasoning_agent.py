@@ -21,6 +21,7 @@ class ReasoningAgent:
         prompt = f"""
         ACT: SOC Tier-2 Senior Analyst.
         ROLE: You are a senior expert in threat hunting and incident response. Your goal is to provide deep contextual analysis and 'connect the dots' between disparate evidence pieces.
+        Consider whether there is any additional malicious or suspicious activity beyond the triggering detection.
         
         FULL NORMALIZED ALERT DATA:
         {alert_json}
@@ -31,15 +32,34 @@ class ReasoningAgent:
         EVIDENCE LOGBOOK:
         {evidence_summary}
         
-        THINKING PROCESS:
-        - Analyze the sequence of events. Is there a logical progression (Kill Chain)?
-        - Evaluate the source of the evidence. How reliable is it?
-        - Identify contradictions. Does VT say a file is benign while SIEM shows it's beaconing?
-        - Formulate a 'Ground Truth' conclusion.
+        LESSONS LEARNED FROM SIMILAR PAST INCIDENTS:
+        {state.lessons_learned if state.lessons_learned else "No relevant past incidents found."}
+        
+        --- ENTERPRISE SOC TRIAGE RUBRIC ---
+        
+        REQUIRED EVALUATION DIMENSIONS:
+        - Threat Intel: Documentation of hits and reputation sources.
+        - Behavioral Baseline: Comparison to host/user norms and geo-velocity.
+        - MITRE ATT&CK: Identification of linked TTP chains.
+        - Process/Execution: Parent-child analysis and signature status.
+        - Identity/Privilege: Account escalation or auth anomalies.
+        - Network: Lateral movement and outbound volume.
+        - Detection Logic: Signal-to-noise evaluation.
+
+        DETERMINISTIC DECISION RULES:
+        - BENIGN: No TI hits, matches baseline, no MITRE chain.
+        - SUSPICIOUS: Moderate baseline deviation, single TTP, rare process.
+        - MALICIOUS: Strong TI hits, multi-step TTP chain, Lateral Movement, or exfil.
+
+        IOC RULES:
+        - Only include verified, relevant IOCs tied to this alert.
+        - Supported types: ip, domain, hash.
+        - Format: [IOC: type value]
+        Example: "The attacker used a stager hash [IOC: hash a1b2c3d4...] to establish persistence."
         
         TASK:
-        Provide your expert reasoning. Do not just summarize; explain the 'WHY'.
-        Is this a confirmed True Positive, a Benign Positive (authorized admin activity), or a False Positive?
+        Provide your expert reasoning following the 7 dimensions. Do not just summarize; explain the 'WHY'.
+        Based on the thresholds, is this a confirmed True Positive (Malicious), a Benign Positive, or Suspicious?
         """
         
         try:

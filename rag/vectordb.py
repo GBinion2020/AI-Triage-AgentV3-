@@ -23,6 +23,12 @@ class MITREVectorDB:
             name="mitre_defend",
             metadata={"description": "MITRE D3FEND countermeasures (no embeddings)"}
         )
+        
+        self.feedback_collection = self.client.get_or_create_collection(
+            name="feedback_loop",
+            embedding_function=self.embedding_function,
+            metadata={"description": "Analyst feedback and investigation close notes"}
+        )
     
     def query_attack_techniques(self, query_text: str, n_results: int = 3) -> list:
         """
@@ -78,6 +84,27 @@ class MITREVectorDB:
                 "tactics": metadata.get("tactics", "")
             }
         return None
+
+    def query_feedback(self, query_text: str, n_results: int = 2) -> list:
+        """Query past analyst feedback using semantic search."""
+        results = self.feedback_collection.query(
+            query_texts=[query_text],
+            n_results=n_results
+        )
+        
+        feedback = []
+        if results['documents'] and results['documents'][0]:
+            for i, doc in enumerate(results['documents'][0]):
+                metadata = results['metadatas'][0][i] if results['metadatas'] else {}
+                feedback.append({
+                    "alert_id": metadata.get("alert_id", "Unknown"),
+                    "verdict": metadata.get("verdict", "Unknown"),
+                    "notes": doc,
+                    "artifacts": metadata.get("artifacts", "[]"),
+                    "distance": results['distances'][0][i] if results.get('distances') else None
+                })
+        return feedback
+
 
 
 class OllamaEmbedding(embedding_functions.EmbeddingFunction):

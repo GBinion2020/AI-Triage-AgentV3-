@@ -40,8 +40,12 @@ class HostInfo(BaseModel):
     hostname: str
     os: str
     os_version: Optional[str] = None
+    os_kernel: Optional[str] = None
+    os_platform: Optional[str] = None
+    os_name_text: Optional[str] = None
     architecture: Optional[str] = None
     ip_addresses: List[str] = []
+    mac_addresses: List[str] = []
 
 class UserInfo(BaseModel):
     name: Optional[str] = None
@@ -163,6 +167,36 @@ class AnalysisSignals(BaseModel):
     confidence_boost: float = 0.0
     confidence_decay: float = 0.0
 
+class RawContext(BaseModel):
+    """
+    Minimal raw alert context needed for triage.
+    """
+    rule_name: Optional[str] = None
+    rule_description: Optional[str] = None
+    alert_reason: Optional[str] = None
+    message: Optional[str] = None
+    event_created: Optional[str] = None
+    event_code: Optional[str] = None
+    event_action: Optional[str] = None
+    event_dataset: Optional[str] = None
+    event_provider: Optional[str] = None
+    event_category: Optional[Any] = None
+    winlog_event_id: Optional[str] = None
+    winlog_channel: Optional[str] = None
+    winlog_process_pid: Optional[Any] = None
+    winlog_computer_name: Optional[str] = None
+    agent_name: Optional[str] = None
+    host_os_kernel: Optional[str] = None
+    host_os_name: Optional[str] = None
+    host_name: Optional[str] = None
+    host_os_platform: Optional[str] = None
+    host_os_name_text: Optional[str] = None
+    host_ip: Optional[Any] = None
+    host_mac: Optional[Any] = None
+    process_command_line: Optional[str] = None
+    process_args: Optional[Any] = None
+    process_pid: Optional[Any] = None
+
 class NormalizedSecurityAlert(BaseModel):
     """
     New Scheme for normalized alerts.
@@ -173,6 +207,7 @@ class NormalizedSecurityAlert(BaseModel):
     execution: ExecutionInfo
     entity: EntityInfo
     analysis_signals: AnalysisSignals
+    raw_context: Optional[RawContext] = None
     
     # Original raw data kept for reference/debugging
     raw_data: Dict[str, Any] = Field(default_factory=dict)
