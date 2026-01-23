@@ -40,7 +40,8 @@ flowchart TB
   I --> J[Decision Agent]
   J --> K[Email Report + Audit Trail]
   L[Feedback Webhook] --> M[Feedback Store]
-  M --> D
+  M --> N[Feedback Retrieval]
+  N --> D
 ```
 
 ## Simple Flow
@@ -52,6 +53,7 @@ flowchart LR
   Investigate --> Score
   Score --> Decide
   Decide --> Notify
+  Feedback --> Investigate
 ```
 
 ## What Runs First
@@ -111,3 +113,4 @@ Deep technical details have moved to the repo wiki:
 - SIEM query library and field mapping
 - RAG indexing and retrieval strategy
 - Feedback loop design
+- Full pipeline breakdown (`docs/wiki/PIPELINE.md`)
