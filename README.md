@@ -1,6 +1,6 @@
 # Enterprise Agentic SOC: AI-Powered Security Alert Triage
 
-> **An autonomous, multi-agent security operations platform** that combines deterministic cybersecurity logic with adaptive LLM reasoning to intelligently triage security alerts at scale.
+> **An autonomous, multi-agent security operations platform** that combines deterministic cybersecurity logic with adaptive LLM reasoning to triage alerts at scale.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -33,7 +33,7 @@ The **Enterprise Agentic SOC** is a state-of-the-art autonomous security operati
 - **Zero hallucinations** on foundational security facts
 - **Transparent decision-making** with complete audit trails
 - **Scalable 24/7 triage** without human fatigue
-- **Dual LLM Support**: Choose between privacy-first local models (Ollama) or high-performance external APIs (OpenAI-compatible)
+- **Dual LLM Support**: Local models (Ollama) or external APIs (OpenAI-compatible)
 
 ### The Problem It Solves
 Modern SOCs face:
@@ -57,19 +57,24 @@ A **hybrid intelligence platform** that:
 ### Hybrid Intelligence & Dual LLM Support
 - **Signal Engine**: Deterministic regex/heuristic-based detection of 50+ attack patterns
 - **Multi-Agent System**: Specialized AI agents for intake, investigation, reasoning, and decision-making
-- **Flexible LLM Backend**: Interactive selection between Local Ollama and External APIs
+- **Flexible LLM Backend**: Interactive selection between Local (Ollama) and External APIs
 - **RAG-Enhanced**: MITRE ATT&CK knowledge base integration via vector search
 
 ### Enterprise-Grade Governance & Notifications
 - **Policy Engine**: Runtime enforcement of tool permissions, depth limits, and forbidden actions
-- **Internal Triage Notifications**: Automated reports sent via **Resend SDK** for Jira integration
 - **Dual Confidence Gates**: Operational (fact-based) and Analytical (reasoning quality) checks
-- **Token Guard**: Prevents infinite loops with configurable iteration limits
+- **Duplicate Detection**: Tool-call hashing prevents redundant API calls
+- **Internal Triage Notifications**: High-fidelity reports sent via Resend SDK
 
 ### Active Investigation Capabilities
-- **MCP Tool Integration**: SIEM queries, VirusTotal lookups, CloudTrail audits (Entra disabled unless configured)
-- **Evidence-Anchored Queries**: Tight time windows and quoted filters to reduce noise
+- **MCP Tool Integration**: SIEM queries, VirusTotal lookups, CloudTrail audits (Entra optional)
+- **Evidence-Anchored Queries**: Quoted values, narrow time windows, and laddered expansion
 - **Iterative Evidence Gathering**: Up to 10 investigation loops with intelligent stopping criteria
+
+### Deterministic Risk Scoring
+- **Risk Matrix 0–100**: Weighted evidence scoring with transparent contributions
+- **Strict thresholds**: Benign 0–20, Suspicious 21–60, Malicious 61–100
+- **Reproducible output**: No speculative scoring or hidden heuristics
 
 ---
 
@@ -190,16 +195,6 @@ graph TB
     end
 ```
 
-### Color Legend
-- **Dark Blue** (Ingestion): Raw data intake and normalization
-- **Purple** (Intel): Knowledge base and semantic enrichment
-- **Red** (Governance): Policy enforcement and safety controls
-- **Teal** (Agents): AI-driven decision making and reasoning
-- **Orange** (Tools): External data sources and APIs
-- **Green** (Decision): Final authority and classification
-- **Gray** (Audit): Compliance and transparency mechanisms
-- **Slate** (Feedback): Analyst feedback loop
-
 ---
 
 ## Workflow Pipeline
@@ -230,24 +225,28 @@ graph TB
 - Interactive selection between Local (Ollama) or External (OpenAI-compatible)
 
 **7. Intake Agent** (`agents/intake_agent.py`)
-- Gatekeeper: filters false positives with >95% confidence threshold
+- Gatekeeper: filters obvious false positives with >95% confidence threshold
 
 **8. Investigation Agent** (`agents/investigation_agent.py`)
 - Tier-1 investigator: generates technical tool intents
 
-**9. Reasoning Agent** (`agents/reasoning_agent.py`)
+**9. Deterministic Planner** (`control/planner.py`)
+- Converts intents into evidence-anchored tool plans with quoted values
+- Avoids duplicate SIEM queries per loop
+- Uses narrow time windows (default +/- 3 minutes)
+
+**10. Reasoning Agent** (`agents/reasoning_agent.py`)
 - Tier-2 analyst: synthesizes evidence into narratives
 
 ### Phase 4: Final Authority & Output
 
-**10. Decision Agent** (`agents/decision_agent.py`)
-- SOC manager: final verdict
-- Output includes summary, evidence table, final score, recommended action
+**11. Decision Agent** (`agents/decision_agent.py`)
+- Produces summary + evidence table + risk score + classification
 
-**11. Email Notification** (`utils/email_notifier.py`)
+**12. Email Notification** (`utils/email_notifier.py`)
 - Resend SDK integration for Jira/SOC routing
 
-**12. Audit Trail Export**
+**13. Audit Trail Export**
 - Writes `audit_trail_[alert_id].json` for full transparency
 
 ---
@@ -272,6 +271,7 @@ graph TB
 | LLM Client | `llm/client.py` | Unified client supporting Local and External |
 | Intake Agent | `agents/intake_agent.py` | High-confidence gatekeeper |
 | Investigation Agent | `agents/investigation_agent.py` | Hypothesis-driven evidence gathering |
+| Reasoning Agent | `agents/reasoning_agent.py` | Tier-2 analyst narratives |
 | Decision Agent | `agents/decision_agent.py` | Final authority with structured output |
 
 ### Layer 4: Notifications & Reporting
@@ -304,7 +304,7 @@ Create a `.env` file from `.env.example`:
 
 ```env
 # Elastic SIEM
-ELASTIC_BASE_URL=https://172.20.10.9:9200
+ELASTIC_BASE_URL=https://your-elastic-url:9200
 ELASTIC_API_KEY=your-key
 
 # LLM Configuration
@@ -312,6 +312,9 @@ LLM_MODEL="llama3.1:8b" # Local
 EXTERNAL_LLM_API_KEY="sk-..."
 EXTERNAL_LLM_URL="https://api.openai.com/v1/chat/completions"
 EXTERNAL_LLM_MODEL="gpt-5.2"
+
+# VirusTotal Configuration
+VT_API_KEY="your-vt-api-key"
 
 # Notifications (Resend API)
 RE_SEND_KEY="re_..."
@@ -332,10 +335,10 @@ Run the orchestrator:
 python main.py
 ```
 
-1. The system fetches alerts from Elastic
-2. You select Local or External LLM
-3. The multi-agent pipeline executes investigation loops
-4. Final triage reports are logged and emailed to the configured recipient
+1. The system fetches alerts from Elastic.
+2. An interactive prompt asks you to select Local or External LLM.
+3. The multi-agent pipeline executes the investigation.
+4. Final triage reports are logged locally and emailed to your configured recipient.
 
 ---
 
@@ -350,7 +353,7 @@ soc-ai-TriageAgent/
 ├── llm/                # Unified Client (Local/External)
 ├── rag/                # Vector DB and MITRE data ingestion
 ├── schemas/            # Pydantic state and alert models
-├── tools/              # MCP Tool orchestration and summarization
+├── tools/              # MCP tool orchestration and summarization
 ├── feedback_api/       # Feedback webhook + storage
 └── main.py             # Entry point
 ```
@@ -374,11 +377,11 @@ python -m uvicorn feedback_api.app:app --host 0.0.0.0 --port 8001
 ## Detailed Documentation
 
 Deep technical details live in the repo wiki:
-- Scoring matrix and thresholds
-- SIEM query library and field mapping
-- RAG indexing and retrieval strategy
-- Feedback loop design
+- Scoring engine: `docs/wiki/SCORING_ENGINE.md`
+- Signals engine: `docs/wiki/SIGNALS_ENGINE.md`
+- MCP + SIEM guardrails: `docs/wiki/MCP_AND_SIEM.md`
 - Full pipeline breakdown: `docs/wiki/PIPELINE.md`
+- Loop scratch sheet: `docs/wiki/PIPELINE_LOOP.md`
 
 ---
 
