@@ -11,5 +11,7 @@ debug_output.*
 
 # Persistent DB (Optional - usually excluded if large)
 chroma_db/
+feedback_api/*.db
+*.sqlite3
 
 pipeline_logs/

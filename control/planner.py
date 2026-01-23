@@ -280,8 +280,8 @@ class DeterministicPlanner:
 
             rc = state.alert.raw_context
             if rc:
-                    if rc.event_code:
-                        candidates.append({**base_args, "event_code": self._quote_value(str(rc.event_code))})
+                if rc.event_code:
+                    candidates.append({**base_args, "event_code": self._quote_value(str(rc.event_code))})
                 if rc.event_dataset:
                     candidates.append({**base_args, "message_contains": self._quote_value(rc.event_dataset)})
                 if rc.event_provider:
