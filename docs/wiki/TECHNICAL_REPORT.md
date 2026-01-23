@@ -29,7 +29,7 @@ Primary contract is `NormalizedSecurityAlert` (`schemas/alert.py`).
 
 Key fields surfaced to the LLM:
 - `alert.name`, `alert.description`, `alert.severity`, `alert.timestamp`
-- `execution.process.command_line`, `execution.process.args`
+- `execution.process.command_line`
 - `entity.host.hostname`, `entity.user.name`/`entity.user.id`
 - `analysis_signals.*` (boolean flags)
 - `raw_context.*` (select ECS fields)
@@ -44,7 +44,7 @@ Convert raw telemetry into deterministic, reproducible signals that the LLM can 
 
 ### 3.2 Signal Taxonomy
 
-Signals are derived via regex/heuristics across fields such as `process.command_line`, `process.args`, `message`, `event.code`, `winlog.channel`, `host.name`, and `host.ip`.
+Signals are derived via regex/heuristics across fields such as `process.command_line`, `message`, `event.code`, `winlog.channel`, `host.name`, and `host.ip`.
 
 Signal groups:
 - Execution & process anomalies

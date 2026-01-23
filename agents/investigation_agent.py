@@ -79,6 +79,7 @@ class InvestigationAgent:
         - Use query laddering: start narrow; only widen time windows or add filters after a no-result query.
         - Field-aware filters: prefer event.code, event.dataset, or event.provider from the alert context.
         - Evidence-driven process filters only; do not guess process names.
+        - For command or PowerShell-related lookups, prefer the `message` field over `process.args`.
         - IOC-first: if you see an IP/domain/hash, prioritize VirusTotal before more SIEM queries.
 
         TIME WINDOW RULES:

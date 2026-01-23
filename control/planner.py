@@ -84,8 +84,6 @@ class DeterministicPlanner:
             ]:
                 if value:
                     parts.append(str(value))
-            if rc.process_args:
-                parts.extend([str(v) for v in rc.process_args if v])
         for ev in state.evidence[-5:]:
             if ev.summary:
                 parts.append(str(ev.summary))
@@ -299,7 +297,7 @@ class DeterministicPlanner:
 
              for proc in extracted["process_names"]:
                  proc_value = self._quote_value(proc)
-                 candidates.append({**base_args, "process_args_contains": proc_value})
+                 candidates.append({**base_args, "message_contains": proc_value})
                  if proc.lower() in anchors["processes"]:
                      candidates.append({**base_args, "process_name": proc_value})
 

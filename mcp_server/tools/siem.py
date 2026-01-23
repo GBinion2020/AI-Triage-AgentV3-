@@ -67,7 +67,6 @@ def query_host_logs(
     window_back_minutes: Optional[int] = None,
     window_forward_minutes: Optional[int] = None,
     process_name: Optional[str] = None,
-    process_args_contains: Optional[str] = None,
     event_code: Optional[str] = None,
     message_contains: Optional[str] = None,
     source_ip: Optional[str] = None,
@@ -126,7 +125,6 @@ def query_host_logs(
         return value
 
     process_name = _clean(process_name)
-    process_args_contains = _clean(process_args_contains)
     event_code = _clean(event_code)
     message_contains = _clean(message_contains)
     source_ip = _clean(source_ip)
@@ -139,8 +137,6 @@ def query_host_logs(
     ]
     if process_name:
         filters.append({"match_phrase": {"process.name": process_name}})
-    if process_args_contains:
-        filters.append({"match_phrase": {"process.args": process_args_contains}})
     if event_code:
         filters.append({"term": {"event.code": event_code}})
     if message_contains:
@@ -239,7 +235,6 @@ def query_host_logs(
                 "time_range": {"start": start_iso, "end": end_iso},
                 "filters": {
                     "process_name": process_name,
-                    "process_args_contains": process_args_contains,
                     "event_code": event_code,
                     "message_contains": message_contains,
                     "source_ip": source_ip,

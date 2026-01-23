@@ -76,7 +76,7 @@ Key fields used during orchestration:
 
 ### Evidence-Anchored Queries
 Queries are built from observed evidence in the alert context:
-- Process candidates use `process_args_contains` with quoted values.
+- Process candidates use `message_contains` or `process_name` with quoted values.
 - Event IDs use `event_code` instead of free-text fields.
 - Message filtering uses `message_contains` with quoted values.
 

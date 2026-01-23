@@ -108,7 +108,7 @@ The Signals Engine applies deterministic logic to raw telemetry to extract behav
 - Signals are derived from normalized ECS fields in `NormalizedSecurityAlert`.
 - The engine uses regex/heuristics over fields such as:
   - process.command_line
-  - process.args
+  - process.command_line
   - message
   - event.code
   - winlog.channel

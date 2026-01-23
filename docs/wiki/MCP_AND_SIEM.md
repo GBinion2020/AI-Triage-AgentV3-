@@ -11,8 +11,8 @@ This page summarizes the MCP tool layer, SIEM query design, and guardrails used 
 ## SIEM Query Guardrails
 
 ### Evidence-Anchored Queries
-- Queries are derived from alert evidence (process args, event codes, message tokens).
-- Values are quoted (e.g., `process_args: "powershell.exe"`).
+- Queries are derived from alert evidence (process name, event codes, message tokens).
+- Values are quoted (e.g., `message: "powershell.exe"`).
 
 ### Time Window Discipline
 - Default window is `alert_timestamp +/- 3 minutes`.
@@ -37,7 +37,8 @@ This page summarizes the MCP tool layer, SIEM query design, and guardrails used 
 ## SIEM Field Examples
 
 - `host.name`
-- `process.args`
+- `process.name`
+- `process.command_line`
 - `process.command_line`
 - `event.code`
 - `message`
