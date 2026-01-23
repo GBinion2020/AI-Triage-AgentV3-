@@ -44,7 +44,7 @@ flowchart TB
   end
 
   subgraph Feedback["Feedback Loop"]
-    Z[Jira Webhook] --> AA[Normalize Feedback]
+    Z[Jira Automation Webhook] --> AA[Normalize Feedback]
     AA --> AB[Feedback Store]
     AB --> AC[Feedback Retrieval]
     AC --> I
@@ -142,4 +142,3 @@ Decision agent produces:
 - Baseline queries always run first:
   - last 24h host alerts
   - host logs +/- 3 minutes
-

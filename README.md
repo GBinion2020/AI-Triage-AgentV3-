@@ -182,8 +182,9 @@ graph TB
     AuditExport --> End([Case Resolution])
 
     subgraph "Feedback Loop"
-        FeedbackIn[Jira Webhook<br/>feedback_api/app.py]:::feedback
-        FeedbackIn --> FeedbackStore[(Feedback DB)]:::feedback
+        FeedbackIn[Jira Automation Webhook<br/>feedback_api/app.py]:::feedback
+        FeedbackIn --> FeedbackNormalize[Normalize + Store]:::feedback
+        FeedbackNormalize --> FeedbackStore[(Feedback DB)]:::feedback
         FeedbackStore --> FeedbackRAG[Feedback Retrieval<br/>context/feedback_rag.py]:::feedback
         FeedbackRAG --> IntakeAgent
     end
