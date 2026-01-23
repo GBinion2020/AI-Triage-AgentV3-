@@ -69,6 +69,7 @@ A **hybrid intelligence platform** that:
 ### Active Investigation Capabilities
 - **MCP Tool Integration**: SIEM queries, VirusTotal lookups, CloudTrail audits (Entra optional)
 - **Evidence-Anchored Queries**: Quoted values, narrow time windows, and laddered expansion
+- **Query Deduping**: Per-loop suppression of identical tool calls
 - **Iterative Evidence Gathering**: Up to 10 investigation loops with intelligent stopping criteria
 
 ### Deterministic Risk Scoring
@@ -210,6 +211,7 @@ graph TB
 
 **3. Signal Engine** (`intake/logic.py`)
 - Deterministic logic: 50+ behavioral signals (AMSI bypass, LOTL, etc.)
+ - Signals are injected into the LLM context as structured flags
 
 ### Phase 2: Governance & Intelligence
 
@@ -234,6 +236,7 @@ graph TB
 - Converts intents into evidence-anchored tool plans with quoted values
 - Avoids duplicate SIEM queries per loop
 - Uses narrow time windows (default +/- 3 minutes)
+ - Prefers `event.code` over free-text message filters
 
 **10. Reasoning Agent** (`agents/reasoning_agent.py`)
 - Tier-2 analyst: synthesizes evidence into narratives
@@ -242,6 +245,7 @@ graph TB
 
 **11. Decision Agent** (`agents/decision_agent.py`)
 - Produces summary + evidence table + risk score + classification
+ - Outputs 4-6 sentence SOC analyst close note with timestamps and IOCs
 
 **12. Email Notification** (`utils/email_notifier.py`)
 - Resend SDK integration for Jira/SOC routing
@@ -325,6 +329,15 @@ FROM_EMAIL="soc-ai@yourdomain.com"
 FEEDBACK_API_KEY="your-key"
 FEEDBACK_DB_PATH=feedback_api/feedback.db
 ```
+
+## Output Format
+
+Decision output is deterministic and structured:
+- Summary paragraph (4–6 sentences, SOC L2/3 tone, timestamps + IOCs)
+- Evidence table (category, evidence, weight, confidence, contribution)
+- Final score (0–100)
+- Final classification (Benign/Suspicious/Malicious)
+- Recommended action (Close/Escalate/Contain)
 
 ---
 
