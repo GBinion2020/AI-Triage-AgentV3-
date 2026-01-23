@@ -1,0 +1,110 @@
+graph TB
+    %% Styling
+    classDef ingestion fill:#1a237e,stroke:#0d47a1,stroke-width:3px,color:#fff
+    classDef normalization fill:#283593,stroke:#1976d2,stroke-width:3px,color:#fff
+    classDef intel fill:#512da8,stroke:#7b1fa2,stroke-width:3px,color:#fff
+    classDef governance fill:#c62828,stroke:#d32f2f,stroke-width:3px,color:#fff
+    classDef agents fill:#00695c,stroke:#00897b,stroke-width:3px,color:#fff
+    classDef tools fill:#e65100,stroke:#f57c00,stroke-width:3px,color:#fff
+    classDef decision fill:#2e7d32,stroke:#43a047,stroke-width:3px,color:#fff
+    classDef audit fill:#37474f,stroke:#546e7a,stroke-width:3px,color:#fff
+    classDef feedback fill:#455a64,stroke:#607d8b,stroke-width:3px,color:#fff
+
+    Start([Raw Security Alert<br/>Elastic/Splunk]) --> Ingest
+
+    subgraph "Layer 1: Ingestion & Normalization"
+        Ingest[Alert Ingestor<br/>intake/ingest.py]:::ingestion
+        Ingest --> PreClass{Pre-Classifier<br/>intake/pre_classifier.py}:::ingestion
+        PreClass -->|Empty Alert| Exit1[Skip Processing]
+        PreClass -->|Valid Alert| SignalEng[Signal Engine<br/>intake/logic.py]:::normalization
+        
+        SignalEng --> Signals[50+ Behavioral Signals<br/>- AMSI Bypass<br/>- LOTL Binaries<br/>- Encoded Commands<br/>- External Comms]:::normalization
+        Signals --> Schema[Normalized Schema<br/>schemas/alert.py<br/>NormalizedSecurityAlert]:::normalization
+    end
+
+    Schema --> Policy
+
+    subgraph "Layer 2: Governance & Intelligence"
+        Policy[Policy Engine<br/>control/policy_engine.py]:::governance
+        Policy --> PolicyCheck{Policy Decision<br/>- Tool Permissions<br/>- Max Depth<br/>- Forbidden Actions}:::governance
+        
+        PolicyCheck -->|Denied| Exit2[Policy Violation]
+        PolicyCheck -->|Approved| MITRE
+        
+        MITRE[MITRE RAG<br/>context/rag.py<br/>rag/vectordb.py]:::intel
+        MITRE --> VectorDB[(Chroma Vector DB<br/>ATT&CK Techniques<br/>D3FEND Controls)]:::intel
+        VectorDB --> TechMap[Technique Mapping<br/>context/mitre_map.py]:::intel
+    end
+
+    TechMap --> LLMChoice
+
+    subgraph "Layer 3: Multi-Agent Orchestration"
+        LLMChoice{LLM Selection<br/>Local vs External}:::agents
+        LLMChoice --> IntakeAgent[Intake Agent<br/>agents/intake_agent.py<br/>Role: Gatekeeper]:::agents
+        
+        IntakeAgent --> IntakeDecision{Decision Logic<br/>Confidence >95%?}:::agents
+        IntakeDecision -->|Benign| Close[Auto-Close<br/>No Investigation]
+        IntakeDecision -->|Suspicious| InvLoop[Investigation Loop]:::agents
+        
+        InvLoop --> ConfGate1{Confidence Gate 1<br/>core/confidence.py<br/>Operational Check}:::governance
+        ConfGate1 -->|Low Confidence| InvAgent
+        ConfGate1 -->|High Confidence| ReasonAgent
+        
+        InvAgent[Investigation Agent<br/>agents/investigation_agent.py<br/>Role: Tier-1 Investigator]:::agents
+        InvAgent --> Intent[Intent Generation<br/>LLM-Driven]:::agents
+        
+        Intent --> Planner[Deterministic Planner<br/>control/planner.py]:::governance
+        Planner --> PlanLogic{Planning Strategy<br/>1. MITRE-Based<br/>2. Intent-Based<br/>3. Signal-Based}:::governance
+        
+        PlanLogic --> ToolPlan[Tool Execution Plan<br/>List of Tool Calls]:::tools
+        ToolPlan --> ToolCheck{Policy Check<br/>Duplicate Detection<br/>Permission Validation}:::governance
+        
+        ToolCheck -->|Denied| Skip[Skip Tool]
+        ToolCheck -->|Approved| Executor
+        
+        Executor[Tool Executor<br/>tools/executor.py]:::tools
+        Executor --> MCP[MCP Tools<br/>mcp_server/tools/]:::tools
+        
+        MCP --> SIEM[SIEM Query<br/>siem.py]:::tools
+        MCP --> VT[VirusTotal<br/>virustotal.py]:::tools
+        MCP --> Cloud[CloudTrail<br/>cloudtrail.py]:::tools
+        
+        SIEM & VT & Cloud --> Formatter[Output Formatter<br/>mcp_server/formatter.py]:::tools
+        Formatter --> Summarizer[Result Summarizer<br/>tools/summarizer.py<br/>Smart Context Pruning]:::tools
+        
+        Summarizer --> Evidence[Evidence Store<br/>schemas/state.py<br/>InvestigationState]:::audit
+        Evidence --> LoopAudit[Loop Audit Record<br/>Intent + Tools + Results]:::audit
+        
+        LoopAudit --> TokenGuard{Token Guard<br/>control/token_guard.py<br/>Iteration Limit Check}:::governance
+        TokenGuard -->|Max Iterations| ForceExit[Force Exit to Decision]
+        TokenGuard -->|Continue| InvLoop
+        
+        ReasonAgent[Reasoning Agent<br/>agents/reasoning_agent.py<br/>Role: Tier-2 Analyst]:::agents
+        ReasonAgent --> Analysis[Deep Analysis<br/>Connect the Dots<br/>Build Narrative]:::agents
+        
+        Analysis --> ConfGate2{Confidence Gate 2<br/>Analytical Check}:::governance
+        ConfGate2 -->|Uncertain| InvLoop
+        ConfGate2 -->|Confident| DecAgent
+    end
+
+    ForceExit --> DecAgent
+    
+    subgraph "Layer 4: Final Authority & Output"
+        DecAgent[Decision Agent<br/>agents/decision_agent.py<br/>Role: SOC Manager]:::decision
+        DecAgent --> FinalDecision{Final Classification<br/>- Benign<br/>- Suspicious<br/>- Malicious}:::decision
+        
+        FinalDecision --> JSONOut[Structured Output<br/>Summary + Evidence Table<br/>Score + Action]:::decision
+        
+        JSONOut --> EmailNotify[Email Notification<br/>Resend SDK Integration<br/>Triage Report]:::decision
+        EmailNotify --> AuditExport[Audit Trail Export<br/>Complete Investigation Record]:::audit
+    end
+    
+    AuditExport --> End([Case Resolution])
+
+    subgraph "Feedback Loop"
+        FeedbackIn[Jira Automation Webhook<br/>feedback_api/app.py]:::feedback
+        FeedbackIn --> FeedbackNormalize[Normalize + Store]:::feedback
+        FeedbackNormalize --> FeedbackStore[(Feedback DB)]:::feedback
+        FeedbackStore --> FeedbackRAG[Feedback Retrieval<br/>context/feedback_rag.py]:::feedback
+        FeedbackRAG --> IntakeAgent
+    end
