@@ -11,3 +11,6 @@ debug_output.*
 
 # Persistent DB (Optional - usually excluded if large)
 chroma_db/
+
+# Feedback DB (local runtime data)
+feedback_api/feedback.db
