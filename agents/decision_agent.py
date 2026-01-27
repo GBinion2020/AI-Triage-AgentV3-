@@ -22,6 +22,8 @@ class DecisionAgent:
         # Prepare Context
         alert_json = json.dumps(state.alert.model_dump(exclude_none=True, exclude={"raw_data"}), default=str)
         evidence_summary = "\n".join([f"- {e.source_tool}: {e.summary}" for e in state.evidence])
+        lessons = state.lessons_learned if state.lessons_learned else "No relevant past incidents found."
+        feedback_override = self._detect_feedback_override(lessons)
 
         prompt = f"""
         ACT: SOC Manager.
@@ -39,6 +41,12 @@ class DecisionAgent:
         EVIDENCE SUMMARIES:
         {evidence_summary}
 
+        FEEDBACK LOOP (AUTHORITATIVE CONTEXT):
+        {lessons}
+
+        FEEDBACK OVERRIDE FLAG:
+        {feedback_override}
+
         --- DETERMINISTIC RISK OUTPUTS ---
         Final Risk Score (0-100): {risk_score}
         Final Classification: {classification}
@@ -48,6 +56,7 @@ class DecisionAgent:
         TASK:
         Provide only the narrative summary and recommended action.
         The final score and classification are already determined. Do not change them.
+        If FEEDBACK OVERRIDE FLAG is true, you MUST state in the summary that the activity is likely benign/known testing based on prior analyst feedback, while keeping the same score/classification.
         Write like a SOC L2/L3 analyst close note with relevant timestamps, IOCs, and findings.
         Avoid listing internal host IPs unless they are directly tied to malicious activity.
         Do not mention scoring, weights, or rubric mechanics.
@@ -112,3 +121,9 @@ class DecisionAgent:
                  "mitre_techniques": [],
                  "journal": [],
              }
+
+    def _detect_feedback_override(self, lessons: str) -> bool:
+        if not lessons:
+            return False
+        lowered = lessons.lower()
+        return "false positive" in lowered or "benign" in lowered or "not malicious" in lowered
