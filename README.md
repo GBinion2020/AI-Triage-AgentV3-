@@ -1,4 +1,4 @@
-# Enterprise Agentic SOC: AI-Powered Security Alert Triage
+# Enterprise Agentic SOC: AI-Powered Security Alert Triage (FULL PIPELINE IS IN 'STAGING BRANCH', The main branch is outdated for now)
 
 > **An autonomous, multi-agent security operations platform** that combines deterministic cybersecurity logic with adaptive LLM reasoning to triage alerts at scale.
 
